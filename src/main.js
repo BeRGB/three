@@ -1,10 +1,20 @@
 import * as THREE from 'three';
+    import lottie from 'lottie-web';
     import { gsap } from 'gsap';
     import { ScrollTrigger } from 'gsap/ScrollTrigger';
+    import { ScrollSmoother } from 'gsap/ScrollSmoother';
 
-    gsap.registerPlugin(ScrollTrigger);
+    gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
-    // THREE.js setup
+    // === SMOOTHER ===
+    ScrollSmoother.create({
+      wrapper: '#smooth-wrapper',
+      content: '#smooth-content',
+      smooth: 1.2,
+      effects: true
+    });
+
+    // === THREE.JS ===
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
     camera.position.z = 5;
@@ -13,12 +23,8 @@ import * as THREE from 'three';
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.getElementById('three-container').appendChild(renderer.domElement);
 
-    const textureLoader = new THREE.TextureLoader();
-    const texture = textureLoader.load('textures/crate.jpg');
-
-    const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshStandardMaterial({ map: texture });
-    const cube = new THREE.Mesh(geometry, material);
+    const texture = new THREE.TextureLoader().load('textures/crate.jpg');
+    const cube = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial({ map: texture }));
     scene.add(cube);
 
     const light = new THREE.DirectionalLight(0xffffff, 1);
@@ -56,19 +62,51 @@ import * as THREE from 'three';
     }
     animate();
 
-    // SVG draw on scroll
+    // === SVG ===
     const path = document.querySelector("#line");
-    const pathLength = path.getTotalLength();
-    path.style.strokeDasharray = pathLength;
-    path.style.strokeDashoffset = pathLength;
+    if (path) {
+      const length = path.getTotalLength();
+      path.style.strokeDasharray = length;
+      path.style.strokeDashoffset = length;
 
-    gsap.to(path, {
-      strokeDashoffset: 0,
-      ease: "power1.inOut",
-      scrollTrigger: {
-        trigger: ".draw-svg-section",
-        start: "top center",
-        end: "bottom center",
-        scrub: true
-      }
+      gsap.to(path, {
+        strokeDashoffset: 0,
+        ease: "power1.inOut",
+        scrollTrigger: {
+          trigger: ".draw-svg-section",
+          start: "top center",
+          end: "bottom center",
+          scrub: true
+        }
+      });
+    }
+
+    // === LOTTIE ===
+    const animation = lottie.loadAnimation({
+      container: document.getElementById('lottie'),
+      renderer: 'svg',
+      loop: false,
+      autoplay: false,
+      path: 'animations/example.json'
+    });
+
+    animation.addEventListener('DOMLoaded', () => {
+      const totalFrames = animation.totalFrames;
+      const scrubObj = { frame: 0 };
+      let currentFrame = 0;
+
+      gsap.to(scrubObj, {
+        frame: totalFrames - 1,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.lottie-section',
+          start: 'top center',
+          end: 'bottom center',
+          scrub: true
+        },
+        onUpdate: () => {
+          currentFrame += (scrubObj.frame - currentFrame) * 0.1;
+          animation.goToAndStop(currentFrame, true);
+        }
+      });
     });
