@@ -14,7 +14,7 @@ document.body.appendChild(renderer.domElement);
 
 // Tekstura
 const textureLoader = new THREE.TextureLoader();
-const texture = textureLoader.load('/textures/crate.jpg');
+const texture = textureLoader.load('textures/crate.jpg');
 
 // Kocka
 const geometry = new THREE.BoxGeometry();
