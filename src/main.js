@@ -110,3 +110,104 @@ import * as THREE from 'three';
         }
       });
     });
+
+// === VIDEO FLAG (FIXED SCALE VIA MESH SIZE + POSITION SHIFT FROM TOP) ===
+const flagCanvas = document.getElementById('flagCanvas');
+const renderer2 = new THREE.WebGLRenderer({ canvas: flagCanvas, alpha: true });
+renderer2.setSize(window.innerWidth, window.innerHeight);
+flagCanvas.style.position = 'absolute';
+flagCanvas.style.top = '0';
+flagCanvas.style.left = '0';
+flagCanvas.style.width = '100%';
+flagCanvas.style.height = '100%';
+renderer2.setPixelRatio(window.devicePixelRatio);
+
+const scene2 = new THREE.Scene();
+const camera2 = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera2.position.z = 3;
+
+const video = document.createElement('video');
+video.src = 'videos/video.mp4';
+video.loop = true;
+video.muted = true;
+video.playsInline = true;
+video.autoplay = true;
+video.setAttribute('playsinline', '');
+video.setAttribute('muted', '');
+video.setAttribute('autoplay', '');
+video.setAttribute('loop', '');
+video.style.display = 'none';
+document.body.appendChild(video);
+
+video.addEventListener('canplay', () => {
+  const videoTexture = new THREE.VideoTexture(video);
+  videoTexture.minFilter = THREE.LinearFilter;
+  videoTexture.magFilter = THREE.LinearFilter;
+  videoTexture.format = THREE.RGBFormat;
+
+  const geometry = new THREE.PlaneGeometry(2, 1.125, 100, 100);
+  const material = new THREE.MeshBasicMaterial({ map: videoTexture });
+  const flag = new THREE.Mesh(geometry, material);
+  // initial offset will be updated in animate loop // podiže mesh da počne od vrha kad se skalira
+  scene2.add(flag);
+
+  const positions = geometry.attributes.position;
+  const vertexCount = positions.count;
+  const originalPositions = new Float32Array(positions.array);
+
+  const proxy = { scale: 1 };
+
+  ScrollTrigger.create({
+    trigger: '.video-flag-section',
+    start: 'top top',
+    end: 'bottom bottom',
+    scrub: 1,
+    // scroller: '#smooth-content',
+    onUpdate: self => {
+      proxy.scale = 1 + self.progress * 2.5;
+    }
+  });
+
+  function animateFlag() {
+    requestAnimationFrame(animateFlag);
+    const time = performance.now() * 0.001;
+
+    for (let i = 0; i < vertexCount; i++) {
+      const ix = i * 3;
+      const x = originalPositions[ix];
+      const y = originalPositions[ix + 1];
+      let wave = 0;
+      if (proxy.scale > 1.01 && proxy.scale < 3.49) {
+        wave = Math.sin(x * 3 + time * 3) * 0.05 + Math.sin(y * 5 + time * 2) * 0.05;
+      }
+      positions.array[ix + 2] = wave;
+    }
+
+    console.log('Scale:', proxy.scale);
+    flag.scale.set(proxy.scale, proxy.scale, 1);
+    flag.position.y = (1.125 * proxy.scale) / 2;
+    camera2.position.z = 3 / proxy.scale;
+    camera2.updateProjectionMatrix();
+
+    positions.needsUpdate = true;
+    renderer2.render(scene2, camera2);
+  }
+  animateFlag();
+
+  video.play();
+});
+
+video.load();
+
+
+
+
+
+
+
+
+
+
+
+
+
